@@ -1,0 +1,607 @@
+= Отчет по лабораторной работе №3&4
+Шумаков А.С. <КЭ-413>
+:imagesdir: image
+:toc:
+:toc-title: Оглавление
+:figure-caption: Рисунок
+:table-caption: Таблица
+:sectnums: |,all|
+
+== Указатель на константу и константный  указатель
+Указатели могут ссылаться как на переменные, так и на константы. 
+
+Для того чтобы создать указатель на константу, необходимо использовать ключевое слово const в его объявлении.
+
+
+[[pointer_code]]
+
+[source, cpp]
+----
+int main()
+
+{
+
+    const int a {10};
+
+    const int *pa {&a};
+
+    std::cout << "address=" << pa << "\tvalue=" << *pa << std::endl;
+
+}
+----
+
+В данном случае указатель pa ссылается на константу a. Это означает, что попытка изменить значение по адресу, на который указывает указатель, будет невозможна. 
+
+Например, даже если мы попытаемся изменить это значение, это не получится сделать.
+
+В этом случае мы просто получим ошибку во время компиляции.
+
+Возможна также ситуация, когда указатель на константу на самом деле указывает на переменную:
+
+[[pointer_code1]]
+
+[source, cpp]
+----
+
+int main()
+
+{
+
+    int a {10};
+
+    const int *pa {&a};
+
+    std::cout <<"value=" << *pa << std::endl;     // value=10
+
+    a = 22;
+
+    std::cout <<"value=" << *pa << std::endl;     // value=22
+
+    //*pa = 34;     // так делать нельзя
+
+}
+----
+
+В данной ситуации мы можем изменять значение переменной напрямую, однако изменить его через указатель не удастся. 
+
+Указатель на константу не позволяет изменять значение переменной или константы, но при этом мы можем переназначить указатель, присвоив ему адрес другой переменной или константы.
+
+[[pointer_code2]]
+[source, cpp]
+----
+const int a {10};
+
+const int *pa {&a};     // указатель указывает на константу a
+
+const int b {45};
+
+pa = &b;                // указатель указывает на константу b
+
+std::cout <<"*pa = " << *pa << std::endl;     // *pa = 45
+
+std::cout <<"a = " << a << std::endl;     // a = 10 - константа a не изменяется
+----
+
+Важно различать указатели на константы и константные указатели. 
+
+Константные указатели не позволяют изменять адрес, который они хранят, но при этом дают возможность изменять значение по этому адресу.
+
+[[pointer_code3]]
+[source, cpp]
+----
+int main()
+
+{
+
+    int a {10};
+
+    int *const pa {&a};
+
+    std::cout << "value=" << *pa << std::endl;  // value = 10
+
+    *pa = 22;        // меняем значение
+
+    std::cout << "value=" << *pa << std::endl;  // value = 22
+   
+    int b {45};
+
+    // pa = &b;         так нельзя сделать
+
+}
+----
+
+== Ссылки
+
+Ссылка (reference) служит методом взаимодействия с определенным объектом. 
+
+По сути, ссылка представляет собой альтернативное название для этого объекта. Для обозначения ссылки используется символ амперсанда (&):
+
+int number {5};
+
+int &refNumber {number};
+
+Нельзя просто определить ссылку:
+
+int &refNumber;
+
+Ссылка должна указывать на какой-нибудь объект.
+
+Нельзя присвоить ссылке литеральное значение, например, число:
+
+int &refNumber = 10;
+
+С помощью ссылки можно манипулировать самим объектом, на который она ссылается:
+
+[[pointer_code4]]
+[source, cpp]
+----
+int main()
+
+{
+
+    int number {5};
+
+    int &refNumber {number};
+
+    std::cout << refNumber << std::endl; // 5
+
+    refNumber = 20;
+
+    std::cout << number << std::endl;   // 20
+
+}
+----
+
+Изменения по ссылке влияют и на тот объект, на который ссылается ссылка.
+
+Ссылки можно указывать не только на переменные, но и на константы. Но при этом ссылка сама должна быть константной:
+
+[[pointer_code5]]
+[source, cpp]
+----
+const int number{5};
+
+const int &refNumber{number};
+
+std::cout << refNumber << std::endl; // 5
+
+//refNumber = 20;       изменять значение по ссылке нельзя
+----
+
+== Регистры
+
+В микроконтроллерах различают регистры общего назначения и специальные регистры. 
+
+Регистры общего назначения находятся внутри ядра микроконтроллера и функционируют как сверхбыстрая память. 
+
+Они предназначены для хранения адресов и промежуточных результатов вычислений, а также данных, необходимых для работы процессора.
+
+В отличие от них, специальные регистры располагаются в оперативной памяти (ОЗУ) и используются для управления процессором и его периферийными устройствами. 
+
+Архитектура ARM представлена регистрами, которые являются ресурсами памяти длиной 32 бита. 
+
+Каждый бит в регистре можно рассматривать как переключатель, позволяющий управлять различными параметрами микроконтроллера.
+
+== Регистры общего назначения
+
+С точки зрения прикладного программиста, процессор включает 16 32-разрядных регистров общего назначения (РОН, GPR). 
+
+Из этого количества три регистра имеют специфические функции, отличающие их от остальных.
+
+Первой группой являются оперативные регистры, которые предназначены для выполнения основных операций и хранения временных данных. 
+
+Вторую группу составляют вспомогательные регистры, которые помогают в управлении процессами и оптимизации вычислений.
+
+Третью категорию представляют специальные регистры, выполняющие уникальные задачи, связанные с управлением и настройкой работы процессора. 
+
+Эти различия в функциях регистров позволяют программистам более эффективно использовать ресурсы процессора и оптимизировать выполнение программ.
+
+== Оперативные регистры
+
+Регистры R0-R3 и R12 классифицируются как оперативные (scratch) регистры. 
+
+Эти регистры могут использоваться любой функцией по своему усмотрению, что означает, что содержимое этих регистров может быть изменено или уничтожено в процессе выполнения.
+
+Если функция требует сохранения значений этих регистров после вызова другой функции, она обязана сохранить их на стеке перед вызовом. 
+
+После завершения работы вызываемой функции значения должны быть восстановлены из стека, чтобы обеспечить корректность дальнейших вычислений. 
+
+Это позволяет поддерживать целостность данных и избежать потери необходимых значений в процессе выполнения программ.
+
+== Принцип single responsibility
+
+Принцип единственной ответственности -это принцип, согласно которому у каждого класса или модуля должна быть только одна причина для изменения, то есть он должен иметь только одну ответственность.
+
+В нашем в коде из 3 лабораторной работы, таким классом является Led, который отвечает только за включение, отключение и переключение светодиодов
+
+== Код из 3 лабораторной работы
+
+Цель  данной работе нужно было написать код, который загорает светодиоды елочкой, то есть, чтобы светодиоды загорались и тушились по очереди друг за другом.
+
+[[pointer_code6]]
+[source, cpp]
+----
+#include "rccregisters.hpp" // for RCC
+#include "gpioaregisters.hpp" // for GPIOA
+#include "gpiocregisters.hpp" // for GPIOÑ
+#include  // for array
+
+std::uint32_t SystemCoreClock = 16'000'000U;
+
+extern "C" {
+int __low_level_init(void)
+{
+RCC::CR::HSION::On::Set();
+while (RCC::CR::HSIRDY::NotReady::IsSet())
+{
+
+}
+RCC::CFGR::SW::Hsi::Set();
+while (!RCC::CFGR::SWS::Hsi::IsSet())
+{
+
+}
+
+RCC::APB2ENR::SYSCFGEN::Enable::Set();
+
+return 1;
+}
+}
+
+void delay(int cycles)
+{
+for(int i = 0; i < cycles; ++i)
+{
+}
+}
+
+class ILed
+{
+public:
+
+virtual void Light();
+virtual void Off();
+virtual void Toggle();
+
+};
+
+class Led
+{
+public:
+Led(std::uint32_t registrAddress, std::uint32_t pinNumber) :
+registrAddr(registrAddress),
+pinNum(pinNumber)
+{
+}
+
+void Light()
+{
+GPIOC::ODR::Set(1 « pinNum);
+}
+void Off()
+{
+*reinterpret_caststd::uint32_t*(registrAddr) &= ~(1 « pinNum);
+}
+void Toggle()
+{
+GPIOC::ODR::Toggle(1 « pinNum);
+}
+private:
+std::uint32_t registrAddr;
+std::uint32_t pinNum;
+};
+
+int main()
+{
+
+RCC::AHB1ENR::GPIOAEN::Enable::Set() ;
+
+RCC::AHB1ENR::GPIOCEN::Enable::Set() ;
+
+GPIOA::MODER::MODER5::Output::Set() ;
+
+GPIOC::MODER::MODER5::Output::Set() ;
+GPIOC::MODER::MODER8::Output::Set() ;
+GPIOC::MODER::MODER9::Output::Set() ;
+
+
+
+constexpr std::uint32_t gpiocOdrRegAddres = 0x40020814U;
+constexpr std::uint32_t gpioaOdrRegAddres = 0x40020014U;
+
+Led led1(gpiocOdrRegAddres, 5);
+Led led2(gpiocOdrRegAddres, 8);
+Led led3(gpiocOdrRegAddres, 9);
+Led led4(gpioaOdrRegAddres, 5);
+
+std::array<Led*, 10> leds = {
+&led1,
+&led2,
+&led3};
+
+for (;;){
+
+for(auto it: leds){
+it -> Light();
+delay(800000);
+it -> Off();
+}
+}
+
+/*
+*prtGpiocOdr |= maskBit5;
+delay(200000);
+*prtGpiocOdr |= maskBit8;
+delay(200000);
+*prtGpiocOdr |= maskBit9;
+delay(200000);
+*prtGpioaOdr |= maskBit5;
+
+delay(800000);
+
+*prtGpiocOdr &= ~maskBit5;
+delay(200000);
+*prtGpiocOdr &= ~maskBit8;
+delay(200000);
+*prtGpiocOdr &= ~maskBit9;
+delay(200000);
+*prtGpioaOdr &= ~maskBit5;
+delay(500000); */
+
+return 1;
+
+}
+----
+
+Данный код является программой для микроконтроллера, которая управляет светодиодами через порты GPIO. 
+
+В программе определены классы Led и ILed для управления светодиодами, а также функции delay и __low_level_init.
+
+Основная часть программы находится в функции main(). 
+
+В начале идет инициализация портов GPIOA и GPIOC для управления светодиодами. 
+
+Затем создаются объекты светодиодов led1, led2, led3 и led4 с указанием адресов регистров и номеров пинов.
+
+Дальше идет бесконечный цикл, в котором каждый светодиод последовательно включается методом Light(), затем происходит задержка с помощью функции delay(), и светодиод выключается методом Off(). 
+
+Этот процесс повторяется для всех светодиодов из массива leds.
+
+В закомментированной части кода указан другой способ управления светодиодами, используя непосредственную запись в регистры. 
+
+Однако в основной части программы применяется объектно-ориентированный подход с классом Led для более удобного и читаемого кода.
+
+Программа также содержит инициализацию системных часов и переключение на внешний осциллятор, а также функцию __low_level_init, которая вызывается перед выполнением main() и используется для инициализации аппаратных компонентов.
+
+== Код из 4 лабораторной работы
+
+Цель в данной работе нужно было написать код, зажигает светодиоды в четном или нечетном порядке. То есть пока нечетные светодиоды включены, четные выключены и наоборот.
+
+[[pointer_code7]]
+[source, cpp]
+----
+#include "rccregisters.hpp" // for RCC
+#include "gpioaregisters.hpp" // for GPIOA
+#include "gpiocregisters.hpp" // for GPIO
+#include 
+
+std::uint32_t SystemCoreClock = 16'000'000U;
+
+extern "C" {
+int __low_level_init(void)
+{
+
+RCC::CR::HSION::On::Set();
+while (RCC::CR::HSIRDY::NotReady::IsSet())
+{
+}
+
+RCC::CFGR::SW::Hsi::Set();
+while (!RCC::CFGR::SWS::Hsi::IsSet())
+{
+}
+
+RCC::APB2ENR::SYSCFGEN::Enable::Set();
+
+return 1;
+}
+}
+
+void delay(int cycles)
+{
+for(int i = 0; i < cycles; ++i)
+{
+}
+}
+
+class ILed {
+public:
+virtual void Light() = 0;
+
+virtual void Toggle() = 0;
+};
+
+template <typename TPort, int pinNumber>
+class Led : public ILed {
+public:
+
+void Light() override
+{
+TPort::ODR::Set(1 << pinNumber);
+}
+
+void Toggle() override
+{
+
+TPort::ODR::Toggle(1 << pinNumber);
+}
+
+};
+
+class IMode
+{
+public:
+virtual void Update() = 0;
+virtual void Init() = 0;
+};
+
+using tLeds = std::array<ILed*, 4>;
+using tMode = std::array<IMode*, 2>;
+
+class AllMode : public IMode
+{
+public:
+AllMode(tLeds& ledsArr) : leds(ledsArr)
+{
+}
+
+void Update() override
+{
+for(auto it: leds)
+{
+it -> Toggle();
+}
+}
+
+void Init() override
+{
+for(auto it: leds)
+{
+it -> Light();
+}
+}
+
+private:
+tLeds leds;
+
+};
+
+class TreeMode : public IMode
+{
+public:
+TreeMode(tLeds& ledsArr) : leds(ledsArr)
+{
+}
+
+void Update() override
+{
+leds[currentLedIndex]->Toggle();
+currentLedIndex++;
+if(currentLedIndex == leds.size()){ currentLedIndex = 0;}
+}
+
+void Init() override
+{
+currentLedIndex = 0;
+for(auto it: leds)
+{
+it -> Light();
+}
+}
+
+private:
+tLeds leds;
+std::size_t currentLedIndex;
+
+};
+
+class ChessMode : public IMode
+{
+public:
+ChessMode(tLeds& ledsArr) : leds(ledsArr)
+{
+}
+
+void Update() override
+{
+for(auto it: leds)
+{
+it -> Toggle();
+}
+}
+
+void Init() override
+{
+for(auto it: leds)
+{
+it -> Light();
+}
+
+for(std::size_t i = 0; i < leds.size(); i++)
+{
+if ((i % 2) == 0)
+{
+leds[i] -> Toggle();
+};
+}
+
+}
+
+private:
+tLeds leds;
+
+};
+
+int main()
+{
+
+RCC::AHB1ENR::GPIOAEN::Enable::Set() ;
+
+RCC::AHB1ENR::GPIOCEN::Enable::Set() ;
+
+GPIOA::MODER::MODER5::Output::Set() ;
+
+GPIOC::MODER::MODER5::Output::Set() ;
+GPIOC::MODER::MODER8::Output::Set() ;
+GPIOC::MODER::MODER9::Output::Set() ;
+
+Led<GPIOA, 5> led1;
+Led<GPIOC, 9> led2;
+Led<GPIOC, 8> led3;
+Led<GPIOC, 5> led4;
+
+std::array<ILed*, 4> leds = {
+&led1,
+&led2,
+&led3,
+&led4};
+
+AllMode allMode(leds);
+TreeMode treeMode(leds);
+ChessMode chessMode(leds);
+
+IMode& mode = chessMode;
+mode.Init();
+
+for(;;)
+{
+mode.Update();
+delay(1000000);
+}
+
+return 1;
+}
+----
+
+Этот код определяет несколько классов для манипуляции со светодиодами: ILed, Led, IMode, AllMode, TreeMode, и ChessMode. 
+
+В main() функции инициализируются и включаются порты GPIOA и GPIOC для управления светодиодами. 
+
+Создаются четыре объекта Led с указанными портами и пинами. 
+Затем создается массив указателей на интерфейс ILed, который содержит эти объекты. 
+
+Далее создаются объекты AllMode, TreeMode, и ChessMode, каждый из которых принимает этот массив светодиодов.
+
+Затем программа выбирает режим (в данном случае ChessMode) и инициализирует его. 
+
+После этого начинается бесконечный цикл, в котором вызывается метод Update() выбранного режима и вызывается функция задержки delay(). 
+
+Таким образом, программа будет мигать светодиодами в зависимости от выбранного режима.
+
+== Выводы
+
+В данных работах были написаны 2 кода:
+
+. Код, в котором  светодиоды загораются  елочкой, то есть светодиоды загораются и затухают по очереди.
+
+. Код, в которрм светодиоды загораются в шахматном порядке, то есть пока нечетные светодиоды включены, четные выключены и наоборот.
