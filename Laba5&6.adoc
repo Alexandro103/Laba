@@ -37,10 +37,6 @@ image::Diagram.png[]
 #include "gpioaregisters.hpp" // for GPIOA
 #include  "gpiocregisters.hpp" // for GPIOÑ
 #include <array>
-#include "rccregisters.hpp" // for RCC
-#include "gpioaregisters.hpp" // for GPIOA
-#include "gpiocregisters.hpp" 
-#include <array>
 
 #include "ILed.h" 
 #include "Led.h" 
@@ -360,22 +356,18 @@ main.c :
 #include "gpioaregisters.hpp" // for GPIOA
 #include "gpiocregisters.hpp" // for GPIOÑ
 #include <array>
-#include "rccregisters.hpp" // for RCC
-#include "gpioaregisters.hpp" // for GPIOA
-#include "gpiocregisters.hpp" // for GPIO??
-#include <array>
 
 #include "ILed.h"
-#include "Led.h" // ????? Led
-#include "ledconfig.h" //???????????? Led
+#include "Led.h" 
+#include "ledconfig.h" 
 
 
-#include "IMode.h" // ????????? IMode
-#include "allmode.h" // ????? AllMode
-#include "treemode.h" // ????? TreeMode
-#include "chessmode.h" // ????? ChessMode
-#include "modeconfig.h" //???????????? Mode
-#include "IButton.h" // ????????? IButton
+#include "IMode.h" 
+#include "allmode.h" 
+#include "treemode.h" 
+#include "chessmode.h" 
+#include "modeconfig.h" 
+#include "IButton.h"
 #include "Button.h"
 #include "ModeManager.h"
 
@@ -415,31 +407,24 @@ for(int i = 0; i < cycles; ++i)
 
 int main()
 {
-//Ïîäàòü òàêòèðîâàíèå íà ïîðò À
 RCC::AHB1ENR::GPIOAEN::Enable::Set() ;
-//Ïîäàòü òàêòèðîâàíèå íà ïîðò Ñ
 RCC::AHB1ENR::GPIOCEN::Enable::Set();
 
 GPIOC::MODER::MODER13::Input::Set();
 
 
-//Ïîðòà À.5 íà âûâîä
 GPIOA::MODER::MODER5::Output::Set() ;
-//Ïîðòà C.5,C.8, C.9 íà âûâîä
 GPIOC::MODER::MODER5::Output::Set() ;
 GPIOC::MODER::MODER8::Output::Set() ;
 GPIOC::MODER::MODER9::Output::Set() ;
 
-//const std::uint32_t maskBit5 = (1U«5U);
-// const std::uint32_t maskBit8 = (1U«8U);
-//const std::uint32_t maskBit9 = (1U«9U);
+
 
 
 Led<GPIOC, 5> led1;
 Led<GPIOC, 8> led2;
 Led<GPIOC, 9> led3;
 Led<GPIOA, 5> led4;
-//Led led5(gpiocOdrRegAddres, 5);
 
 tLeds leds = { &led1, &led2, &led3, &led4 };
 
