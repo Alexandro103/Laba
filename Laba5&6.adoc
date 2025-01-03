@@ -1,0 +1,466 @@
+= Отчет по лабораторной работе №5&6
+Шумаков А.С. <КЭ-413>
+:imagesdir: image
+:toc:
+:toc-title: Оглавление
+:figure-caption: Рисунок
+:table-caption: Таблица
+:sectnums: |,all|
+
+Целью 5 работы является разделение кода на отдельные классы, в отдельные папки для удобства работы с кодом.
+
+== Определение класса
+Класс в объектно-ориентированном программировании представляет собой модель для создания объектов определённого типа. 
+
+Он описывает их структуру (набор полей и начальные значения) и определяет алгоритмы (функции или методы) для взаимодействия с этими объектами.
+
+Проще говоря, класс является инструментом для введения абстрактных типов данных в программный проект.
+
+Другие виды абстрактных типов данных, такие как метаклассы, интерфейсы, структуры и перечисления, обладают своими уникальными характеристиками. 
+ 
+Основное отличие классов заключается в том, что при определении типа данных класс одновременно задаёт как интерфейс, так и реализацию для всех своих экземпляров (то есть объектов), что делает вызов метода-конструктора обязательным.
+ 
+== Диаграмма кода
+
+На следующем рисунке представлена диаграмма кода
+
+.Диаграмма кода
+image::Diagram.png[]
+
+== Главный код
+
+[[pointer_code1]]
+
+[source, cpp]
+----
+#include "rccregisters.hpp" // for RCC
+#include "gpioaregisters.hpp" // for GPIOA
+#include  "gpiocregisters.hpp" // for GPIOÑ
+#include <array>
+
+#include "ILed.h" 
+#include "Led.h" 
+#include "ledconfig.h" 
+
+
+#include "IMode.h" 
+#include "allmode.h" 
+#include "treemode.h" 
+#include "chessmode.h" 
+#include "modeconfig.h" 
+
+
+std::uint32_t SystemCoreClock = 16'000'000U;
+
+extern "C" {
+int __low_level_init(void)
+ {
+
+RCC::CR::HSEON::On::Set();
+while (RCC::CR::HSERDY::NotReady::IsSet())
+  {
+
+  }
+
+RCC::CFGR::SW::Hsi::Set();
+while (!RCC::CFGR::SWS::Hsi::IsSet())
+  {
+
+  }
+
+RCC::APB2ENR::SYSCFGEN::Enable::Set();
+
+return 1;
+ }
+}
+
+void delay(int cycles)
+{
+for(int i = 0; i < cycles; ++i)
+{
+}
+}
+
+int main()
+{
+RCC::AHB1ENR::GPIOAEN::Enable::Set() ;
+RCC::AHB1ENR::GPIOCEN::Enable::Set();
+
+GPIOC::MODER::MODER13::Input::Set(); 
+
+
+GPIOA::MODER::MODER5::Output::Set() ;
+GPIOC::MODER::MODER5::Output::Set() ;
+GPIOC::MODER::MODER8::Output::Set() ;
+GPIOC::MODER::MODER9::Output::Set() ;
+
+
+
+
+Led<GPIOC, 5> led1;
+Led<GPIOC, 8> led2;
+Led<GPIOC, 9> led3;
+Led<GPIOA, 5> led4;
+
+
+tLeds leds = {
+&led1,
+&led2,
+&led3,
+&led4};
+
+
+ChessMode chessmode(leds);
+    AllMode allmode(leds);
+    TreeMode treemode(leds);
+
+    
+     treemode.Init();
+
+
+  for(;;) 
+  {
+   
+ treemode.Update();
+  delay(1000000);
+  }
+
+  return 1;
+}
+----
+
+В данном коде управляются светодиоды на микроконтроллере. В начале кода подключаются необходимые заголовочные файлы для работы с регистрами RCC и GPIOA/GPIOC, а также для работы с классами Led, Mode и их конфигурацией.
+
+Затем инициализируется внешний осциллятор на частоте 16 МГц и устанавливается системная частота. Далее включается тактирование портов GPIOA и GPIOC, устанавливаются режимы работы портов (Input/Output) для конкретных пинов, на которых подключены светодиоды.
+
+Создаются объекты светодиодов (Led) с указанием соответствующих порта и пина. Затем создаются объекты режимов работы светодиодов (Mode) - ChessMode, AllMode и TreeMode. В данном случае используется TreeMode.
+
+Затем происходит бесконечный цикл, в котором вызывается метод Update() режима работы для обновления состояния светодиодов и вызова функции задержки delay().
+
+Таким образом, данный код представляет собой программу для управления группой светодиодов с помощью различных режимов работы.
+
+== Разделение на классы
+
+Приведу примеры нескольких классов
+
+Класс allmode:
+
+
+[[pointer_code2]]
+[source, cpp]
+
+----
+#include "allmode.h" 
+AllMode::AllMode(tLeds& ledsArr) : leds(ledsArr)
+{
+}
+
+void AllMode::Update()
+{
+  for(auto it: leds)
+  {
+    it -> Switch();
+  }
+}
+
+void AllMode::Init()
+{
+  for(auto it: leds)
+  {
+    it -> Light();
+  }
+}
+----
+
+Класс chessmode:
+
+[[pointer_code3]]
+[source, cpp]
+
+----
+
+#include "chessmode.h"
+
+ChessMode::ChessMode(tLeds& ledsArr): leds(ledsArr)
+{
+}
+void ChessMode::Update()
+{
+  for(auto it: leds)
+  {
+    it->Switch();
+
+  }
+}
+
+void ChessMode::Init()
+{
+  for(auto it: leds)
+  {
+    it->Light();
+  }
+  for(auto i=0; i< leds.size(); ++i)
+  {
+    if ((i % 2)==0)
+    {
+      leds[i]->Switch();
+    }
+  }
+}
+----
+
+Для работы классов нужно было сохранить файлы классов в отдельных папках:
+
+.Фото классов в папке
+image::photo papki.jpg[]
+
+А затем создать такие же папки в программе и перенести туда классы
+
+.Фото классов в в программе
+image::photo klass.jpg[]
+
+== Вывод по 5 работе
+
+В данной работе исходный код был разбит не несколько отдельных классов для удобства работы
+
+== 6 работа
+
+Целью 6 работы является реалазации кнопки, которая переключает режимы горения светодиодов
+
+== Реализация 6 работы
+
+Для реализации кнопки были введены следующие классы:
+
+=== Класс ModeManager
+
+Для всех разработанных режимов нужно создать класс, который будет ими управлять, назовем его ModeManager.
+
+Данный класс служит для управления существующими режимами.
+
+Заголовочный файл ModeManager.
+
+ModeManager.h :
+
+[[pointer_code4]]
+[source, cpp]
+----
+#ifndef MODEMANAGER_H
+#define MODEMANAGER_H
+
+#include "IModeManager.h"
+#include "ModeConfig.h" // for tMode
+
+class ModeManager : public IModeManager
+{
+public:
+  ModeManager(tMode& modes); 
+  void InitModeManager() override; 
+  void UpdateModeManager() override; 
+  void SwitchModeManager() override; 
+private:
+  tMode& modes; 
+  std::uint8_t currentModeWork; 
+};
+
+#endif
+
+----
+
+
+ModeManager.cpp :
+
+[[pointer_code5]]
+[source, cpp]
+----
+#include "ModeManager.h"
+
+ModeManager::ModeManager(tMode& modeArr) : modes(modeArr),  currentModeWork(0) 
+{
+}
+
+void ModeManager::InitModeManager()
+{
+  modes[currentModeWork]->Init();
+}
+
+void ModeManager::UpdateModeManager()
+{
+  modes[currentModeWork]->Update();
+}
+
+void ModeManager::SwitchModeManager()
+{
+  currentModeWork++;
+  if (currentModeWork > std::size(modes)-1)
+  {
+    currentModeWork = 0; 
+  }
+  modes[currentModeWork]->Init();
+}
+----
+
+В классе принимается массив режимов работы светодиодов на вход. Методы инициализации и обновления режимов выполняют соответствующие действия на основе созданных ранее классов для любого реализованного режима.
+
+Данный класс управляет режимами (modes) в приложении. В конструкторе класса инициализируется массив modes и устанавливается начальное значение currentModeWork равное 0.
+
+Метод InitModeManager проверяет наличие текущего режима в массиве modes и вызывает его метод Init().
+
+Метод UpdateModeManager также проверяет наличие текущего режима в массиве modes и вызывает его метод Update().
+
+Метод SwitchModeManager используется для переключения режима. При вызове этого метода счетчик текущего режима currentModeWork увеличивается, а новый режим инициализируется заново.
+
+Общий смысл кода заключается в том, что класс ModeManager предоставляет функционал для управления различными режимами приложения.
+
+=== Класс Button
+
+Данный класс отвечает за рабботу кнопки на плате. Класс Button отслеживает нажата ли кнопка в текущий момент.
+
+Файл Button.h:
+
+[[pointer_code6]]
+[source, cpp]
+
+----
+
+#ifndef BUTTON_H
+#define BUTTON_H
+
+#include "IButton.h"
+
+template<typename Tport, int punNumber>
+class Button : public IButton 
+{
+public:
+Button() : currentStatus(false), buttonPortStatus(0) {}
+
+bool IsClick() override 
+{
+    return ((Tport::IDR::Get() & (1 << punNumber)) == 0);
+}
+};
+
+#endif
+
+----
+
+Метод IsClick проверяет, была ли нажата кнопка, считывая состояние входного регистра порта. Он возвращает true, если кнопка нажата, и false, если кнопка не нажата.
+
+
+main.c :
+[[pointer_code7]]
+[source, cpp]
+
+----
+
+#include "rccregisters.hpp" // for RCC
+#include "gpioaregisters.hpp" // for GPIOA
+#include "gpiocregisters.hpp" // for GPIOÑ
+#include <array>
+
+#include "ILed.h"
+#include "Led.h" 
+#include "ledconfig.h" 
+
+
+#include "IMode.h" 
+#include "allmode.h" 
+#include "treemode.h" 
+#include "chessmode.h" 
+#include "modeconfig.h" 
+#include "IButton.h"
+#include "Button.h"
+#include "ModeManager.h"
+
+std::uint32_t SystemCoreClock = 8'000'000U;
+
+
+
+extern "C" {
+int __low_level_init(void)
+{
+//Switch on external 16 MHz oscillator
+RCC::CR::HSEON::On::Set();
+while (RCC::CR::HSERDY::NotReady::IsSet())
+{
+
+}
+//Switch system clock on external oscillator
+RCC::CFGR::SW::Hse::Set();
+while (!RCC::CFGR::SWS::Hse::IsSet())
+{
+
+}
+
+RCC::APB2ENR::SYSCFGEN::Enable::Set();
+
+return 1;
+}
+}
+
+void delay(int cycles)
+{
+for(int i = 0; i < cycles; ++i)
+{
+// asm volatile("");
+}
+}
+
+int main()
+{
+RCC::AHB1ENR::GPIOAEN::Enable::Set() ;
+RCC::AHB1ENR::GPIOCEN::Enable::Set();
+
+GPIOC::MODER::MODER13::Input::Set();
+
+
+GPIOA::MODER::MODER5::Output::Set() ;
+GPIOC::MODER::MODER5::Output::Set() ;
+GPIOC::MODER::MODER8::Output::Set() ;
+GPIOC::MODER::MODER9::Output::Set() ;
+
+
+
+
+Led<GPIOC, 5> led1;
+Led<GPIOC, 8> led2;
+Led<GPIOC, 9> led3;
+Led<GPIOA, 5> led4;
+
+tLeds leds = { &led1, &led2, &led3, &led4 };
+
+    TreeMode TreeMode(leds);
+    ChessMode ChessMode(leds);
+    AllMode AllMode(leds);
+
+    tMode modes = { &TreeMode, &ChessMode, &AllMode };
+
+    ModeManager modeManager(modes);
+    modeManager.InitModeManager();
+
+    Button<GPIOC, 13> button;
+
+
+   for(;;)
+  {
+    modeManager.UpdateModeManager();
+
+    if (button.IsClick())
+    {
+      modeManager.SwitchModeManager();
+    }
+    delay(1000000);
+  }
+  
+  return 1;
+}
+----
+
+Этот код создает несколько объектов классов и управляет переключением между различными "режимами".
+
+Сначала создаются объекты класса tLeds с указателями на объекты LED. Затем создаются объекты классов TreeMode, ChessMode и AllMode, каждый из которых принимает tLeds в качестве параметра конструктора. Далее создается объект modeManager, который принимает массив указателей на объекты различных режимов.
+
+Далее создается объект Button для управления переключением режимов. В бесконечном цикле происходит проверка нажатия кнопки - если кнопка нажата дважды, то происходит переключение между режимами, после чего происходит задержка. В противном случае происходит обновление текущего режима и также происходит задержка.
+
+== Вывод по 6 работе
+
+Была реализавона кнопка, которая переключает режимы светодиов между елочкой, шахматами и allmode
