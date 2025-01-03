@@ -291,7 +291,7 @@ void ModeManager::UpdateModeManager()
 void ModeManager::SwitchModeManager()
 {
   currentModeWork++;
-  if (currentModeWork > 2)
+  if (currentModeWork > std::size(modes)-1)
   {
     currentModeWork = 0; 
   }
