@@ -755,6 +755,15 @@ class SendTask
 interface IMeasurementsUpdate {
     +UpdateCalc(): void
 }
+
+interface IMeasurementsController {
+    +Update(): void
+}
+
+interface ITransfer {
+    +TransferData(): void
+}
+
 interface IMeasurementsController
 interface ITransfer
 
@@ -781,56 +790,7 @@ end note
 ----
 
 
-[plantuml, diagram_updated, png]
-----
-@startuml
 
-' Интерфейсы с методами
-interface IThread {
-    +Execute(): void
-}
-
-interface IMeasurementsUpdate {
-    +Calculation(): void
-}
-
-interface IMeasurementsController {
-    +Update(): void
-}
-
-interface ITransfer {
-    +TransferData(): void
-}
-
-' Классы
-class MeasureTask
-class SendTask
-
-' Наследование (реализация интерфейсов)
-MeasureTask -|> IThread
-SendTask -|> IThread
-
-' Агрегация
-MeasureTask o-- IMeasurementsUpdate
-MeasureTask o-- IMeasurementsController
-SendTask o-- ITransfer
-
-' Заметки
-note left of MeasureTask
-Выполняет задачу получение новых
-значений из регистров.
-Обновляет расчет параметров
-температуры, давления, влажности,
-точки росы
-end note
-
-note right of SendTask
-Раз в 1 с отправляет
-данные по USART
-end note
-
-@enduml
-----
 
 .Логика работы архитектуры
 [%autowidth]
@@ -916,7 +876,8 @@ Usart --> ITransfer
 ----
 
 
-.Диаграмма "Обновление регистров"
+.Диаграмма SPI
+
 
 [plantuml, diagram, png]
 ----
@@ -1053,3 +1014,47 @@ IFloatDataProvider <|-- Press
 @enduml
 
 ----
+
+.связь классов с "IMeasurementsController"
+
+[plantuml, diagram, png]
+----
+@startuml
+interface IDataNotifyT {
+  +OnUpdate(uint16_t digRegT1, int16_t digRegT3, int32_t registerCodeT)
+}
+
+interface IDataNotifyP {
+  +OnUpdate(int32_t registerCodeP)
+}
+
+interface IDataNotifyH {
+  +OnUpdate(int16_t registerCodeH)
+}
+
+class Temperature {
+  -measuredX: float
+  -measuredT: float
+  -digT1: uint16_t
+  -digT3: int16_t
+  -adcT: int32_t
+}
+
+class Press {
+  -adcP: int32_t
+  -measuredP: float
+}
+
+class Humidity {
+  -adcH: int16_t
+  -measuredH: float
+}
+
+note bottom of IDataNotifyT : Наследут значение с регистров
+
+Temperature --|> IDataNotifyT
+Press --|> IDataNotifyP
+Humidity --|> IDataNotifyH
+@enduml
+----
+
