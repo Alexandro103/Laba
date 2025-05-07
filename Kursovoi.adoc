@@ -46,7 +46,7 @@
 
 [start = 1]
 . Основная функциональность
-   Датчик BME280 должен измерять:
+   Прибор с помощью датчик BME280 должен измерять:
     - Температуру
     - Влажность
     - Атмосферное давление
@@ -110,8 +110,7 @@ image::plata.jpg[]
 
 | *RCC_APB1ENR* 
 | Тактирование APB1 периферии 
-| `USART2EN`(17), `SPI2EN`(14), 
-`I2C1EN`(21), `PWREN`(28)
+| `USART2EN`(17), `SPI2EN`(14)
 | `uint32_t`
 | RM0090 (стр. 185)
 
@@ -344,7 +343,7 @@ image::pin_of_lab2.jpg[]
 
 | 
 | USART2->CR1
-| UE=1 (бит 13) TE=1 (бит 3) RE=1 (бит 2)
+| UE=1 (бит 13) TE=1 (бит 3)
 | Включение USART, передатчика и приемника
 
 | 
@@ -378,12 +377,12 @@ image::pin_of_lab2.jpg[]
 | - Рассчитать значение BaudRate:  `BRR = f_CLK / BaudRate`
 
 | 4. Настройка формата
-| USARTx->CR1; USARTx->CR2; USARTx->CR3
+| USARTx->CR1; USARTx->CR2;
 | 8 бит данных (M=0); 1 стоп-бит (STOP=00); Без контроля четности (PCE=0)
 
 | 5. Активация
 | USARTx->CR1 (UE, TE, RE)
-| Включить USART (UE=1); Включить передатчик (TE=1);  Включить приемник (RE=1)
+| Включить USART (UE=1); Включить передатчик (TE=1)
 |===
 
 .Регистры USART2
@@ -394,7 +393,6 @@ image::pin_of_lab2.jpg[]
 
 | *USART2_CR1*  | Control Register 1           | `UE` (USART Enable)             | `1` (Включить USART)
 |               |                              | `TE` (Transmitter Enable)       | `1` (Включить передатчик)
-|               |                              | `RE` (Receiver Enable)          | `1` (Включить приёмник)
 |               |                              | `M` (Word Length)               | `0` (8 бит данных) / `1` (9 бит)
 
 | *USART2_CR2*  | Control Register 2           | `STOP[1:0]` (Stop Bits)         | `00` (1 стоп-бит) / `01` (0.5) / `10` (2) / `11` (1.5)
@@ -745,7 +743,313 @@ MISO и MOSI – это сигналы в интерфейсе SPI (Serial Perip
 Схема отражает аппаратную реализацию проекта, включая распиновку и временные параметры, заданные в техническом задании.
 
 
+== Описание архитектуры
+.Диаграмма "задачи"
+[plantuml, diagram, png]
+----
+interface IThread
+
+class MeasureTask
+class SendTask
+
+interface IMeasurementsUpdate {
+    +UpdateCalc(): void
+}
+interface IMeasurementsController
+interface ITransfer
+
+IThread <|-- MeasureTask
+IThread <|-- SendTask
+
+MeasureTask <.. IMeasurementsUpdate
+MeasureTask <.. IMeasurementsController
+
+SendTask o-- ITransfer
+
+note left of MeasureTask
+Выполняет задачу получение новых
+значений из регистров.
+Обновляет расчет параметров
+температуры, давления, влажности,
+точки росы
+end note
+
+note right of SendTask
+Раз в 1 с отправляет
+данные по USART
+end note
+----
 
 
+[plantuml, diagram_updated, png]
+----
+@startuml
 
- 
+' Интерфейсы с методами
+interface IThread {
+    +Execute(): void
+}
+
+interface IMeasurementsUpdate {
+    +Calculation(): void
+}
+
+interface IMeasurementsController {
+    +Update(): void
+}
+
+interface ITransfer {
+    +TransferData(): void
+}
+
+' Классы
+class MeasureTask
+class SendTask
+
+' Наследование (реализация интерфейсов)
+MeasureTask -|> IThread
+SendTask -|> IThread
+
+' Агрегация
+MeasureTask o-- IMeasurementsUpdate
+MeasureTask o-- IMeasurementsController
+SendTask o-- ITransfer
+
+' Заметки
+note left of MeasureTask
+Выполняет задачу получение новых
+значений из регистров.
+Обновляет расчет параметров
+температуры, давления, влажности,
+точки росы
+end note
+
+note right of SendTask
+Раз в 1 с отправляет
+данные по USART
+end note
+
+@enduml
+----
+
+.Логика работы архитектуры
+[%autowidth]
+|===
+|Этап|Описание
+|1|Класс BME280 используя RegisterBME280 производит инициализацию датчика, передача и прием данных с датчика происходит через метод интерфейса ISpi.
+|2|Класс MeasureTask с периодичностью в 100 мс получает значение регистров через интерфейс IMeasurementsController. +
+IMeasurementsController обеспечивает классу BME280 возможность инициирования считывания кодов с регистров датчика. +
+Далее IDataNotify получает коды данных регистров с класса BME280. +
+Затем IDataNotify предоставляет классам Temperature, Humidity, Press нужные коды с регистров.
+|3|Класс MeasureTask с периодичностью в 100 мс получает обновленные значения измеряемых параметров через IMeasurementsUpdate. +
+IMeasurementsUpdate предоставляет метод расчета измеряемых параметров классам Temperature, Humidity, Press, СalculationDewPoint. +
+Класс СalculationDewPoint через IFloatDataProvider получает измеряемые параметры температуры, влажности для расчета точки росы.
+|4|Класс SendTask с периодичностью раз в секунду отправляет измеряемые параметры по USART через интерфейс ITransfer. +
+ITransfer предоставляет метод передачи измеряемых параметров классу Usart. +
+Usart через IFloatDataProvider получает измеряемые параметры классов Temperature, Humidity, Press, СalculationDewPoint. 
+|===
+
+.Описание блоков
+[%autowidth]
+|===
+|Наименование|Описание
+|IMeasurementsUpdate|Обспечивает обновление измеряемых параметров.
+|IMeasurementsController|Обспечивает инициирование считывание кодов с регистров датчика.
+|ITransfer|Обспечивает отправку данных по интерфейсу USART.
+|MeasureTask|Раз в 100 мс выполняет обновление измеряемых параметров.
+|SendTask|Раз в секунду выполняет передачу измеряемых параметров по USART.
+|===
+
+."Обновление расчетов"
+[plantuml, diagram, png]
+----
+@startuml
+skinparam classAttributeIconSize 0
+
+' Интерфейсы и абстрактные компоненты
+interface IMeasurementsUpdate {
+    +UpdateCalc(): void
+}
+interface IFloatDataProvider {
+    +GetData(): float
+}
+interface ITransfer { 
+  +TransferData(): void
+}
+
+' Классы
+class Temperature {
+    +UpdateCalc(): void
+    +GetData(): float
+    +GetRegister(): int
+}
+class CalculationDewPoint
+class Humidity
+class Press
+class Usart
+
+' Примечания
+note top of IMeasurementsUpdate : Выполняет расчет\nфизических величин
+note top of ITransfer : Выполняет\nпередачу по\nUSART
+note bottom of Temperature : Преобразует значение регистра\nтемпературы в градусы
+note bottom of CalculationDewPoint : Рассчитывает значение\nточки росы по температуре\nи влажности
+
+' Стрелки 
+Temperature --> IMeasurementsUpdate
+Temperature --> IFloatDataProvider
+
+CalculationDewPoint --> IMeasurementsUpdate
+CalculationDewPoint --> IFloatDataProvider
+IFloatDataProvider --> CalculationDewPoint
+
+Humidity --> IMeasurementsUpdate
+Humidity --> IFloatDataProvider
+
+Press --> IMeasurementsUpdate
+Press --> IFloatDataProvider
+
+
+Usart <-- IFloatDataProvider
+Usart --> ITransfer
+
+@enduml
+----
+
+
+.Диаграмма "Обновление регистров"
+
+[plantuml, diagram, png]
+----
+@startuml
+interface ISpi {
+  +WriteByte(): void
+  +ReadByte(): void
+  +ReadWord(): void
+}
+
+interface IBme280 {
+  +InitBme280(): void
+}
+
+interface IMeasurementsController {
+  +Update(): void
+}
+
+interface IDataNotifyT {
+  +OnUpdate(uint16_t: digRegT1,\nint16_t_t: digRegT3,\nint32_t_t: registerCodeT): void
+}
+
+interface IDataNotifyP {
+  +OnUpdate(int32_t_t:\nregisterCodeP): void
+}
+
+interface IDataNotifyH {
+  +OnUpdate(int16_t:\nregisterCodeH): void
+}
+
+class Temperature
+class Press
+class Humidity
+
+class Spi {
+
+}
+
+class RegisterBME280 {
+
+}
+
+class BME280 {
+
+}
+
+note top of BME280 : Выполняет первичную настроику BME280.\nПолучает значение из регистром;\nТемпературы;\nВлажности;\nДавления;\nКалибровочные значения температур
+note bottom of BME280 : Выполняет: Чтение регистров BME280\nЗапись регистров в BME280\nИнициализацию BME280
+note top of IMeasurementsController: Обновляет значение всех регистров\nПолучается значение калибровочных\nзначений температуры (dig_T1, dig_T2,\ndig_T3)
+note top of IDataNotifyT: Наследует значение с\nрегистров
+note bottom of RegisterBME280: Находятся\nрегистры в BME280
+
+IBme280 <|-- BME280
+IMeasurementsController <|-- BME280
+IDataNotifyT <|-- Temperature
+IDataNotifyP <|-- Press
+IDataNotifyH <|-- Humidity
+ISpi <|-- Spi
+BME280 <-- ISpi
+BME280 --> RegisterBME280
+BME280 <-- IDataNotifyT
+BME280 <-- IDataNotifyP
+BME280 <-- IDataNotifyH
+@enduml
+----
+
+.Описание блоков
+[%autowidth]
+|===
+|Наименование|Описание
+|IDataNotify|Обеспечивает наследование кодов с регистров.
+|ISpi|Обеспечивает передачу данных по SPI.
+|BME280|Выполняет настройку датчика, получает коды с регистров.
+|RegisterBME280|Хранит регистры назначения датчика.
+|===
+
+.Cвязь классов с "IMeasurementsUpdate "
+[plantuml, diagram, png]
+----
+@startuml
+
+interface IMeasurementsUpdate {
+    +UpdateCalc(): void
+}
+
+interface IFloatDataProvider {
+    +GetData(): float
+}
+
+class Temperature {
+    -measuredX: float
+    -measuredT: float
+    -digT1: uint16_t
+    -digT3: int16_t
+    -adcT: int32_t
+}
+
+class Press {
+    -adcP: int32_t
+    -measuredP: float
+}
+
+class Humidity {
+    +adcH: int16_t
+    +measuredH: float
+}
+
+class DewPoint {
+    -measuredD: float
+    -measuredT: float
+    -measuredH: float
+    -a: float const
+    -b: float const
+    -measuredY: float
+    -mdataT: IFloatDataProvider&
+    -mdataH: IFloatDataProvider&
+    +DewPoint(dataT: IFloatDataProvider&,\ndataH: IFloatDataProvider&)
+}
+
+note top of DewPoint: Рассчитывает значение точки росы\nпо температуре и влажности
+note top of Temperature: Преобразует значение регистра\nтемпературы в градусы
+note top of IMeasurementsUpdate: Выполныет расчет физических величин
+
+IMeasurementsUpdate <|-- DewPoint
+IMeasurementsUpdate <|-- ITemperature
+IMeasurementsUpdate <|-- Press
+IMeasurementsUpdate <|-- Humidity
+
+IFloatDataProvider <|-- Temperature
+IFloatDataProvider <|-- Humidity
+IFloatDataProvider <|-- DewPoint
+IFloatDataProvider <|-- Press
+
+@enduml
+
+----
