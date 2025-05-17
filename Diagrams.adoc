@@ -18,7 +18,9 @@ interface IThread
 class MeasureTask
 class SendTask
 
-
+interface IDewPointUpdate {
+    +Update(): void
+}
 
 interface IMeasurementsController {
     +Update(): void
@@ -33,7 +35,7 @@ interface ITransfer
 
 IThread <|-- MeasureTask
 IThread <|-- SendTask
-
+MeasureTask o--IDewPointUpdate
 MeasureTask o-- IMeasurementsController
 
 SendTask o-- ITransfer
@@ -64,8 +66,8 @@ end note
 IMeasurementsController обеспечивает классу BME280 возможность инициирования считывания кодов с регистров датчика. +
 Далее IDataNotify получает коды данных регистров с класса BME280. +
 Затем IDataNotify предоставляет классам Temperature, Humidity, Press нужные коды с регистров.
-|3|Класс MeasureTask с периодичностью в 100 мс получает обновленные значения измеряемых параметров через IMeasurementsUpdate. +
-IMeasurementsUpdate предоставляет метод расчета измеряемых параметров классам Temperature, Humidity, Press, СalculationDewPoint. +
+|3|Класс MeasureTask с периодичностью в 100 мс получает обновленные значения измеряемых параметров через IDewPointUpdate. +
+IDewPointUpdate предоставляет метод расчета измеряемых параметров классам Temperature, Humidity, Press, СalculationDewPoint. +
 Класс СalculationDewPoint через IFloatDataProvider получает измеряемые параметры температуры, влажности для расчета точки росы.
 |4|Класс SendTask с периодичностью раз в секунду отправляет измеряемые параметры по USART через интерфейс ITransfer. +
 ITransfer предоставляет метод передачи измеряемых параметров классу Usart. +
@@ -76,7 +78,7 @@ Usart через IFloatDataProvider получает измеряемые пар
 [%autowidth]
 |===
 |Наименование|Описание
-|IMeasurementsUpdate|Обспечивает обновление измеряемых параметров.
+|IDewPointUpdate|Обспечивает обновление измеряемых параметров.
 |IMeasurementsController|Обспечивает инициирование считывание кодов с регистров датчика.
 |ITransfer|Обспечивает отправку данных по интерфейсу USART.
 |MeasureTask|Раз в 100 мс выполняет обновление измеряемых параметров.
@@ -90,7 +92,7 @@ Usart через IFloatDataProvider получает измеряемые пар
 skinparam classAttributeIconSize 0
 
 ' Интерфейсы и абстрактные компоненты
-interface IMeasurementsUpdate {
+interface IDewPointUpdate {
     +UpdateCalc(): void
 }
 interface IFloatDataProvider {
@@ -103,37 +105,34 @@ interface ITransfer {
 ' Классы
 class Temperature {
     +UpdateCalc(): void
-    +GetData(): float
-    +GetRegister(): int
-}
+    }
 class CalculationDewPoint
 class Humidity
 class Press
 class Usart
 
 ' Примечания
-note top of IMeasurementsUpdate : Выполняет расчет\nфизических величин
+note top of IDewPointUpdate : Выполняет расчет\nфизических величин
 note top of ITransfer : Выполняет\nпередачу по\nUSART
 note bottom of Temperature : Преобразует значение регистра\nтемпературы в градусы
 note bottom of CalculationDewPoint : Рассчитывает значение\nточки росы по температуре\nи влажности
 
 ' Стрелки 
-Temperature --|> IMeasurementsUpdate
+
 Temperature --|> IFloatDataProvider
 
-CalculationDewPoint --|> IMeasurementsUpdate
+CalculationDewPoint --|> IDewPointUpdate
 CalculationDewPoint --|> IFloatDataProvider
 IFloatDataProvider --o CalculationDewPoint
 
-Humidity --|> IMeasurementsUpdate
+
 Humidity --|> IFloatDataProvider
 
-Press --|> IMeasurementsUpdate
+
 Press --|> IFloatDataProvider
 
 
 Formattre --|> IFormatter
-Provider ---|> IFloatDataProvider
 SendTask o-- IFloatDataProvider
 SendTask o-- IFormatter
 SendTask o-- ITransfer
@@ -221,12 +220,12 @@ BME280 o-- IDataNotifyH
 |RegisterBME280|Хранит регистры назначения датчика.
 |===
 
-.Cвязь классов с "IMeasurementsUpdate "
+.Cвязь классов с "IDewPointUpdate "
 [plantuml]
 ----
 @startuml
 
-interface IMeasurementsUpdate {
+interface IDewPointUpdate {
     +UpdateCalc(): void
 }
 
@@ -266,12 +265,10 @@ class DewPoint {
 
 note top of DewPoint: Рассчитывает значение точки росы\nпо температуре и влажности
 note top of Temperature: Преобразует значение регистра\nтемпературы в градусы
-note top of IMeasurementsUpdate: Выполныет расчет физических величин
+note top of IDewPointUpdate: Выполныет расчет физических величин
 
-IMeasurementsUpdate --o DewPoint
-IMeasurementsUpdate <|-- ITemperature
-IMeasurementsUpdate <|-- Press
-IMeasurementsUpdate <|-- Humidity
+IDewPointUpdate --o DewPoint
+
 
 IFloatDataProvider <|-- Temperature
 IFloatDataProvider <|-- Humidity
