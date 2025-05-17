@@ -11,16 +11,14 @@
 :numbered:
 
 .Диаграмма "задачи"
-[plantuml, diagram, png]
+[plantuml]
 ----
 interface IThread
 
 class MeasureTask
 class SendTask
 
-interface IMeasurementsUpdate {
-    +UpdateCalc(): void
-}
+
 
 interface IMeasurementsController {
     +Update(): void
@@ -36,8 +34,7 @@ interface ITransfer
 IThread <|-- MeasureTask
 IThread <|-- SendTask
 
-MeasureTask <-- IMeasurementsUpdate
-MeasureTask <-- IMeasurementsController
+MeasureTask o-- IMeasurementsController
 
 SendTask o-- ITransfer
 
@@ -87,7 +84,7 @@ Usart через IFloatDataProvider получает измеряемые пар
 |===
 
 ."Обновление расчетов"
-[plantuml, diagram, png]
+[plantuml]
 ----
 @startuml
 skinparam classAttributeIconSize 0
@@ -121,22 +118,26 @@ note bottom of Temperature : Преобразует значение регис�
 note bottom of CalculationDewPoint : Рассчитывает значение\nточки росы по температуре\nи влажности
 
 ' Стрелки 
-Temperature --> IMeasurementsUpdate
-Temperature --> IFloatDataProvider
+Temperature --|> IMeasurementsUpdate
+Temperature --|> IFloatDataProvider
 
-CalculationDewPoint --> IMeasurementsUpdate
-CalculationDewPoint --> IFloatDataProvider
-IFloatDataProvider --> CalculationDewPoint
+CalculationDewPoint --|> IMeasurementsUpdate
+CalculationDewPoint --|> IFloatDataProvider
+IFloatDataProvider --o CalculationDewPoint
 
-Humidity --> IMeasurementsUpdate
-Humidity --> IFloatDataProvider
+Humidity --|> IMeasurementsUpdate
+Humidity --|> IFloatDataProvider
 
-Press --> IMeasurementsUpdate
-Press --> IFloatDataProvider
+Press --|> IMeasurementsUpdate
+Press --|> IFloatDataProvider
 
 
-Usart <-- IFloatDataProvider
-Usart --> ITransfer
+Formattre --|> IFormatter
+Provider ---|> IFloatDataProvider
+SendTask o-- IFloatDataProvider
+SendTask o-- IFormatter
+SendTask o-- ITransfer
+Usart -up-|> ITransfer
 
 @enduml
 ----
@@ -145,7 +146,7 @@ Usart --> ITransfer
 .Диаграмма SPI
 
 
-[plantuml, diagram, png]
+[plantuml]
 ----
 @startuml
 interface ISpi {
@@ -202,11 +203,11 @@ IDataNotifyT <|-- Temperature
 IDataNotifyP <|-- Press
 IDataNotifyH <|-- Humidity
 ISpi <|-- Spi
-BME280 <-- ISpi
-BME280 --> RegisterBME280
-BME280 <-- IDataNotifyT
-BME280 <-- IDataNotifyP
-BME280 <-- IDataNotifyH
+BME280 o-- ISpi
+BME280 ..> RegisterBME280
+BME280 o-- IDataNotifyT
+BME280 o-- IDataNotifyP
+BME280 o-- IDataNotifyH
 @enduml
 ----
 
@@ -221,7 +222,7 @@ BME280 <-- IDataNotifyH
 |===
 
 .Cвязь классов с "IMeasurementsUpdate "
-[plantuml, diagram, png]
+[plantuml]
 ----
 @startuml
 
@@ -267,7 +268,7 @@ note top of DewPoint: Рассчитывает значение точки ро�
 note top of Temperature: Преобразует значение регистра\nтемпературы в градусы
 note top of IMeasurementsUpdate: Выполныет расчет физических величин
 
-IMeasurementsUpdate <|-- DewPoint
+IMeasurementsUpdate --o DewPoint
 IMeasurementsUpdate <|-- ITemperature
 IMeasurementsUpdate <|-- Press
 IMeasurementsUpdate <|-- Humidity
@@ -283,7 +284,7 @@ IFloatDataProvider <|-- Press
 
 .связь классов с "IMeasurementsController"
 
-[plantuml, diagram, png]
+[plantuml]
 ----
 @startuml
 interface IDataNotifyT {
