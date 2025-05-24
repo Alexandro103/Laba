@@ -29,6 +29,12 @@ interface IMeasurementsController {
 interface ITransfer {
     +TransferData(): void
 }
+interface IFormatter {
+    +TransferData(): void
+}
+interface IFloatDataProvider {
+    +TransferData(): void
+}
 
 interface IMeasurementsController
 interface ITransfer
@@ -39,6 +45,8 @@ MeasureTask o--IDewPointUpdate
 MeasureTask o-- IMeasurementsController
 
 SendTask o-- ITransfer
+SendTask o--IFormatter
+SendTask o--IFloatDataProvider
 
 note left of MeasureTask
 Выполняет задачу получение новых
@@ -100,6 +108,9 @@ interface IFloatDataProvider {
 }
 interface ITransfer { 
   +TransferData(): void
+}
+interface IFormatter { 
+  
 }
 
 ' Классы
@@ -251,7 +262,7 @@ class Humidity {
     +measuredH: float
 }
 
-class DewPoint {
+class CalculationDewPoint {
     -measuredD: float
     -measuredT: float
     -measuredH: float
@@ -260,19 +271,19 @@ class DewPoint {
     -measuredY: float
     -mdataT: IFloatDataProvider&
     -mdataH: IFloatDataProvider&
-    +DewPoint(dataT: IFloatDataProvider&,\ndataH: IFloatDataProvider&)
+    +CalculationDewPoint(dataT: IFloatDataProvider&,\ndataH: IFloatDataProvider&)
 }
 
-note top of DewPoint: Рассчитывает значение точки росы\nпо температуре и влажности
+note top of CalculationDewPoint: Рассчитывает значение точки росы\nпо температуре и влажности
 note top of Temperature: Преобразует значение регистра\nтемпературы в градусы
 note top of IDewPointUpdate: Выполныет расчет физических величин
 
-IDewPointUpdate --o DewPoint
+IDewPointUpdate --o CalculationDewPoint
 
 
 IFloatDataProvider <|-- Temperature
 IFloatDataProvider <|-- Humidity
-IFloatDataProvider <|-- DewPoint
+IFloatDataProvider <|-- CalculationDewPoint
 IFloatDataProvider <|-- Press
 
 @enduml
