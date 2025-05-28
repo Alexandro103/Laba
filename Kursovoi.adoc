@@ -745,9 +745,10 @@ MISO и MOSI – это сигналы в интерфейсе SPI (Serial Perip
 
 == UML дииграммы
 
-UMl диаграммы представлены по ссылке ниже
+UMl диаграммы представлены ниже
 
-link:Diagrams.adoc[]
+include::Diagrams.adoc[]
+
 
 == Заключение
 
